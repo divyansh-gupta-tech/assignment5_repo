@@ -242,7 +242,7 @@ output$treatmentOutcome <- renderPlotly({
 output$efScatter <- renderPlotly({
   p <- ggplot(filtered(), aes(EJF_PER, BMI, color = TRTMT)) +
     geom_point(alpha = 0.5, size = 1.8) +
-    scale_color_manual(values = c("Placebo" = "#1F77B4", "Treatment" = "#D62728")) +
+    scale_color_manual(values = c("Placebo" = "deepskyblue", "Treatment" = "red")) +
     labs(x = "Ejection Fraction (%)", y = "BMI")
   ggplotly(p)
 })
@@ -268,6 +268,54 @@ output$treatmentOutcome <- renderPlotly({
   
   ggplotly(p)
 })
+
+# ---------------------------
+# Outcomes visualizations
+# ---------------------------
+
+output$hospBar <- renderPlotly({
+  df <- filtered() %>%
+    group_by(TRTMT) %>%
+    summarise(mean_nhosp = mean(NHOSP, na.rm = TRUE))
+  
+  p <- ggplot(df, aes(TRTMT, mean_nhosp)) +
+    geom_col(fill = "deepskyblue2") +
+    labs(y = "Mean Hospitalizations")
+  
+  ggplotly(p)
+})
+
+output$nhospBox <- renderPlotly({
+  p <- ggplot(filtered(), aes(TRTMT, NHOSP)) +
+    geom_boxplot(fill = "steelblue") +
+    labs(y = "Hospitalizations")
+  
+  ggplotly(p)
+})
+
+# Plot 1
+output$creatEfPlot <- renderPlotly({
+  p <- ggplot(filtered(), aes(CREAT, EJF_PER, color = TRTMT)) +
+    geom_point(alpha = 0.5, size = 1.8) +
+    labs(x = "Creatinine", y = "Ejection Fraction (%)")
+  ggplotly(p)
+})
+
+# Extra Outcomes Plot 2 – hospitalization rate
+output$hospRatePlot <- renderPlotly({
+  df <- filtered() %>%
+    group_by(TRTMT) %>%
+    summarise(
+      Rate = round(mean(HOSP == 1, na.rm = TRUE) * 100, 1)
+    )
+  
+  p <- ggplot(df, aes(TRTMT, Rate)) +
+    geom_col(fill = "purple") +
+    labs(y = "Hospitalization Rate (%)")
+  
+  ggplotly(p)
+})
+
 
   
   
