@@ -148,4 +148,24 @@ tabItem(tabName = "overview",
         )
 ),
 
+# ---------------------------
+# Outcomes tab
+# ---------------------------
+tabItem(tabName = "outcomes",
+        fluidRow(
+          box(width = 6, title = "Mean Hospitalizations", status = "primary",
+              solidHeader = TRUE, plotlyOutput("hospBar")),
+          box(width = 6, title = "NHOSP Distribution", status = "primary",
+              solidHeader = TRUE, plotlyOutput("nhospBox"))
+        ),
+        hr(),
+        fluidRow(
+          box(width = 6, title = "Creatinine vs Ejection Fraction", status = "info",
+              solidHeader = TRUE, plotlyOutput("creatEfPlot")),
+          box(width = 6, title = "Hospitalization Rate (%)", status = "info",
+              solidHeader = TRUE, plotlyOutput("hospRatePlot"))
+        )
+),
+
+
                       
