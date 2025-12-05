@@ -88,3 +88,48 @@ ui <- dashboardPage(
       .content {padding: 20px;}
     "))),
     
+  tabItems(
+      
+# ---------------------------
+# Info tab
+# ---------------------------
+tabItem(tabName = "info",
+        fluidRow(
+          box(width = 12, title = "About the DIG Trial", status = "primary", solidHeader = TRUE,
+          p("The Digitalis Investigation Group (DIG) Trial studied how Digoxin affects mortality and hospitalizations among patients with heart failure."),
+          p("This dashboard lets you explore the DIG dataset interactively, compare treatment groups, examine clinical features, and summarise mortality risk over time."))
+              ),
+              
+        fluidRow(
+          box(width = 6, title = "Dataset Overview", status = "info",
+          p("The dataset contains demographic, clinical, and outcome variables for more than 6800 patients."),
+          p("Key variables include:"),
+          tags$ul(
+          tags$li("AGE — Patient age"),
+          tags$li("TRTMT — Treatment group (Placebo, Digoxin)"),
+          tags$li("EJF_PER — Ejection Fraction (%)"),
+          tags$li("BMI — Body Mass Index"),
+          tags$li("KLEVEL — Potassium level"),
+          tags$li("CREAT — Creatinine"),
+          tags$li("NHOSP — Number of hospitalizations"),
+          tags$li("DEATH — Mortality status"),
+          tags$li("DEATHDAY — Follow-up time (days)")
+          ),
+          tags$a(href = "https://github.com/divyansh-gupta-tech/assignment5_repo/blob/main/DIG_code_book-1.pdf", target = "_blank",
+                 "Click here to open the DIG codebook")
+          ),
+          
+          box(width = 6, title = "How to Use the Dashboard", status = "info",
+          p("Use the sidebar filters to narrow down the dataset by treatment group, sex, age, 
+               ejection fraction, and BMI."),
+          tags$ul(
+          tags$li("Overview of demographics and treatment patterns"),
+          tags$li("Hospitalization outcomes"),
+          tags$li("Monthly mortality risk summaries"),
+          tags$li("Interactive full dataset viewer")
+              )
+          )
+        )
+),
+
+                      
