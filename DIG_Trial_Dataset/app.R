@@ -233,176 +233,153 @@ ui <- dashboardPage(
   )
 )
 
-
 # SERVER
-
 
 server <- function(input, output, session) {
   
-# Filtered Data
-
-filtered <- reactive({
-  dig %>%
-    filter(
-      TRTMT %in% input$trtmt,
-      AGE >= input$age[1], AGE <= input$age[2],
-      RACE %in% input$race,
-      SEX %in% input$sex,
-      BMI >= input$bmi[1], BMI <= input$bmi[2]
-           )
-                     })
-
+  filtered <- reactive({
+    dig %>%
+      filter(
+        TRTMT %in% input$trtmt,
+        AGE >= input$age[1] & AGE <= input$age[2],
+        RACE %in% input$race,
+        SEX %in% input$sex,
+        BMI >= input$bmi[1] & BMI <= input$bmi[2]
+      )
+  })
+  
 # OVERVIEW TAB
-
-# Dataset summary
-output$datasetSummary <- renderTable({
-  df <- filtered()
-  tibble(
-    Total_Patients = nrow(df),
-    Placebo = sum(df$TRTMT == "Placebo"),
-    Digoxin = sum(df$TRTMT == "Digoxin"),
-    Avg_Followup = round(mean(df$DEATHDAY, na.rm = TRUE), 1)
-        )
-                                      })
   
-# Demographics
-output$ageDist <- renderPlotly({
-  ggplotly(
-    ggplot(filtered(), aes(AGE)) +
-      geom_histogram(fill = "steelblue", bins = 30, color = "white") +
-      labs(x = "Age", y = "Count")
-           )
-                                })
+  output$datasetSummary <- renderTable({
+    df <- filtered()
+    tibble(
+      Total_Patients = nrow(df),
+      Placebo = sum(df$TRTMT == "Placebo"),
+      Digoxin = sum(df$TRTMT == "Digoxin"),
+      Avg_Followup_Days = round(mean(df$DEATHDAY, na.rm = TRUE), 1)
+    )
+  })
   
-output$sexDist <- renderPlotly({
-  df <- filtered() %>% count(SEX)
-  plot_ly(df, labels = ~SEX, values = ~n, type = "pie")
-                                })
+  # AGE – Grouped Histogram
+  output$ageDist <- renderPlotly({
+    p <- ggplot(filtered(), aes(AGE, fill = TRTMT)) +
+      geom_histogram(position = "dodge", bins = 25, color = "white", alpha = 0.85) +
+      scale_fill_manual(values = c("Placebo"="steelblue", "Digoxin"="orange")) +
+      labs(x = "Age", y = "Count", fill = "Treatment") +
+      ggtitle("Age Distribution by Treatment")
+    ggplotly(p)
+  })
   
-output$raceDist <- renderPlotly({
-  df <- filtered() %>% count(RACE)
-  ggplotly(
-    ggplot(df, aes(RACE, n, fill = RACE)) +
+  output$sexDist <- renderPlotly({
+    df <- filtered() %>% count(SEX)
+    plot_ly(df, labels = ~SEX, values = ~n, type = "pie") %>%
+      layout(title = "Sex Distribution")
+  })
+  
+  output$raceDist <- renderPlotly({
+    df <- filtered() %>% count(RACE)
+    p <- ggplot(df, aes(RACE, n, fill = RACE)) +
       geom_col() +
-      labs(x = "Race", y = "Count")
-           )
-                                 })
+      scale_fill_manual(values=c("steelblue","orange")) +
+      labs(x = "Race", y = "Count", fill="Race") +
+      ggtitle("Race Distribution")
+    ggplotly(p)
+  })
   
-output$bmiBox <- renderPlotly({
-  ggplotly(
-    ggplot(filtered(), aes(y = BMI)) +
-      geom_boxplot(fill = "#66C2A5") +
-      labs(y = "BMI")
-           )
-                               })
+  output$bmiBox <- renderPlotly({
+    p <- ggplot(filtered(), aes(y = BMI, fill = TRTMT)) +
+      geom_boxplot() +
+      scale_fill_manual(values=c("Placebo"="steelblue","Digoxin"="orange")) +
+      labs(y = "BMI", fill="Treatment") +
+      ggtitle("BMI Distribution")
+    ggplotly(p)
+  })
   
-# Clinical Baseline
-output$efHist <- renderPlotly({
-  ggplotly(
-    ggplot(filtered(), aes(EJF_PER)) +
-      geom_histogram(fill = "orange", bins = 30, color = "white") +
-      labs(x = "Ejection Fraction (%)", y = "Count")
-          )
-                              })
+  output$deathPie <- renderPlotly({
+    df <- filtered() %>% count(DEATH)
+    plot_ly(df, labels = ~DEATH, values = ~n, type = "pie") %>%
+      layout(title="Alive vs Dead")
+  })
   
-output$creatBox <- renderPlotly({
-  ggplotly(
-    ggplot(filtered(), aes(y = CREAT)) +
-      geom_boxplot(fill = "#8DA0CB") +
-      labs(y = "Creatinine")
-          )
-                                 })
-  
-output$klevelBox <- renderPlotly({
-  ggplotly(
-    ggplot(filtered(), aes(y = KLEVEL)) +
-      geom_boxplot(fill = "pink2") +
-      labs(y = "Potassium Level")
-           )
-                                  })
-
-# Quick Outcomes
-output$deathPie <- renderPlotly({
-  df <- filtered() %>% count(DEATH)
-  plot_ly(df, labels = ~DEATH, values = ~n, type = "pie")
-                                 })
-  
-output$hospBarOverview <- renderPlotly({
-  df <- filtered() %>% count(HOSP)
-  ggplotly(
-    ggplot(df, aes(factor(HOSP), n)) +
-      geom_col(fill = "green3") +
-      labs(x = "Hospitalized?", y = "Count")
-           )
-                                        })
-  
-
-# OUTCOMES TAB
-
-output$patientsByTreatment <- renderPlotly({
-  df <- filtered() %>% count(TRTMT)
-  ggplotly(
-    ggplot(df, aes(TRTMT, n, fill = TRTMT)) +
+  output$hospBarOverview <- renderPlotly({
+    df <- filtered() %>% count(HOSP)
+    p <- ggplot(df, aes(factor(HOSP), n, fill=factor(HOSP))) +
       geom_col() +
-      labs(y = "Number of Patients")
-          )
-                                           })
+      scale_fill_manual(values=c("steelblue","orange")) +
+      labs(x="Hospitalized?", y="Count", fill="Hospitalized") +
+      ggtitle("Any Hospitalization Count")
+    ggplotly(p)
+  })
   
-output$comparisonTable <- renderTable({
-  filtered() %>%
-    group_by(TRTMT) %>%
-    summarise(
-      N = n(),
-      Mean_Age = round(mean(AGE, na.rm = TRUE), 1),
-      Mean_BMI = round(mean(BMI, na.rm = TRUE), 1),
-      Mortality = sum(DEATH == "Death")
-             )
-                                       })
-  
-output$cvdMortality <- renderPlotly({
-  ggplotly(
-    ggplot(filtered(), aes(CVD, fill = DEATH)) +
-      geom_bar(position = "fill") +
-      labs(y = "Proportion")
-          )
-                                    })
-  
-output$hospTreatment <- renderPlotly({
-  df <- filtered() %>%
-    group_by(TRTMT) %>%
-    summarise(HospRate = mean(HOSP == 1))
-    
-  ggplotly(
-    ggplot(df, aes(TRTMT, HospRate, fill = TRTMT)) +
-      geom_col()
-          )
-                                     })
-  
-output$mortalityTreatment <- renderPlotly({
-  df <- filtered() %>%
-    group_by(TRTMT) %>%
-    summarise(MortRate = mean(DEATH == "Death"))
-    
-  ggplotly(
-    ggplot(df, aes(TRTMT, MortRate, fill = TRTMT)) +
-      geom_col()
-          )
-                                         })
-  
-output$bpRelation <- renderPlotly({
-  ggplotly(
-    ggplot(filtered(), aes(SYSBP, DIABP, color = TRTMT)) +
-      geom_point(alpha = 0.4) +
-      labs(x = "Systolic BP", y = "Diastolic BP")
-          )
-                                   })
+# OUTCOMES TAB 
 
-# MORTALITY TAB (RESTORED)
+  output$patientsByTreatment <- renderPlotly({
+    df <- filtered() %>% count(TRTMT)
+    p <- ggplot(df, aes(TRTMT, n, fill=TRTMT)) +
+      geom_col() +
+      scale_fill_manual(values=c("Placebo"="steelblue","Digoxin"="orange")) +
+      labs(y="Number of Patients", fill="Treatment") +
+      ggtitle("Patients Per Treatment Group")
+    ggplotly(p)
+  })
+  
+  output$comparisonTable <- renderTable({
+    filtered() %>%
+      group_by(TRTMT) %>%
+      summarise(
+        N = n(),
+        Mean_Age = round(mean(AGE, na.rm = TRUE), 1),
+        Mean_BMI = round(mean(BMI, na.rm = TRUE), 1),
+        Mortality = sum(DEATH=="Death")
+      )
+  })
+  
+  output$cvdMortality <- renderPlotly({
+    p <- ggplot(filtered(), aes(CVD, fill = DEATH)) +
+      geom_bar(position="fill") +
+      scale_fill_manual(values=c("Alive"="steelblue","Death"="red3")) +
+      labs(y="Proportion", fill="Outcome") +
+      ggtitle("CVD vs Mortality")
+    ggplotly(p)
+  })
+  
+  output$hospTreatment <- renderPlotly({
+    df <- filtered() %>% group_by(TRTMT) %>%
+      summarise(HospRate = mean(HOSP == 1))
+    p <- ggplot(df, aes(TRTMT, HospRate, fill=TRTMT)) +
+      geom_col() +
+      scale_fill_manual(values=c("Placebo"="steelblue","Digoxin"="orange")) +
+      labs(y="Hospitalization Rate", fill="Treatment") +
+      ggtitle("Hospitalization Rate by Treatment")
+    ggplotly(p)
+  })
+  
+  output$mortalityTreatment <- renderPlotly({
+    df <- filtered() %>% group_by(TRTMT) %>%
+      summarise(MortRate = mean(DEATH == "Death"))
+    p <- ggplot(df, aes(TRTMT, MortRate, fill=TRTMT)) +
+      geom_col() +
+      scale_fill_manual(values=c("Placebo"="steelblue","Digoxin"="orange")) +
+      labs(y="Mortality Rate", fill="Treatment") +
+      ggtitle("Mortality Rate by Treatment")
+    ggplotly(p)
+  })
+  
+  output$bpRelation <- renderPlotly({
+    p <- ggplot(filtered(), aes(SYSBP, DIABP, color = TRTMT)) +
+      geom_point(alpha = 0.5) +
+      scale_color_manual(values=c("Placebo"="steelblue","Digoxin"="orange")) +
+      labs(x="Systolic BP", y="Diastolic BP", color="Treatment") +
+      ggtitle("Systolic vs Diastolic Blood Pressure")
+    ggplotly(p)
+  })
+  
+# MORTALITY TAB
 
   monthly_data <- reactive({
     filtered() %>%
       mutate(
-        Month = floor(DEATHDAY / 30),
+        Month = floor(DEATHDAY/30),
         Died = ifelse(DEATH == "Death", 1, 0)
       )
   })
@@ -413,53 +390,43 @@ output$bpRelation <- renderPlotly({
       summarise(
         Deaths = sum(Died),
         Total = n(),
-        Mortality_Risk = round(Deaths / Total, 3)
+        Mortality_Risk = round(Deaths/Total,3)
       )
     datatable(df)
   })
   
   output$monthlyMortalityPlot <- renderPlotly({
-    df <- monthly_data() %>%
-      group_by(Month) %>%
-      summarise(Deaths = sum(Died))
-    
-    ggplotly(
-      ggplot(df, aes(Month, Deaths)) +
-        geom_col(fill = "red3") +
-        labs(x = "Month", y = "Deaths")
-    )
+    df <- monthly_data() %>% group_by(Month) %>% summarise(Deaths=sum(Died))
+    p <- ggplot(df, aes(Month, Deaths)) +
+      geom_col(fill="red") +
+      ggtitle("Deaths Per Month")
+    ggplotly(p)
   })
   
   output$monthlyMortalityByTrtTable <- renderDT({
-    df <- monthly_data() %>%
-      group_by(Month, TRTMT) %>%
+    df <- monthly_data() %>% group_by(Month, TRTMT) %>%
       summarise(
         Deaths = sum(Died),
         Total = n(),
-        Mortality_Risk = round(Deaths / Total, 3)
+        Mortality_Risk = round(Deaths/Total,3)
       )
     datatable(df)
   })
   
   output$monthlyMortalityByTrtPlot <- renderPlotly({
-    df <- monthly_data() %>%
-      group_by(Month, TRTMT) %>%
-      summarise(Deaths = sum(Died))
-    
-    ggplotly(
-      ggplot(df, aes(Month, Deaths, fill = TRTMT)) +
-        geom_col(position = "dodge")
-    )
+    df <- monthly_data() %>% group_by(Month, TRTMT) %>% summarise(Deaths=sum(Died))
+    p <- ggplot(df, aes(Month, Deaths, fill=TRTMT)) +
+      geom_col(position="dodge") +
+      scale_fill_manual(values=c("Placebo"="steelblue","Digoxin"="orange")) +
+      ggtitle("Deaths Per Month by Treatment Group")
+    ggplotly(p)
   })
   
+
 # DATA TABLE
 
   output$dataTable <- renderDT({
-    datatable(
-      filtered(),
-      options = list(scrollX = TRUE),
-      filter = "top"
-    )
+    datatable(filtered(), options = list(scrollX = TRUE), filter="top")
   })
   
   output$downloadData <- downloadHandler(
