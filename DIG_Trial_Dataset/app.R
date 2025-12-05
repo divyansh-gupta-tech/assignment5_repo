@@ -132,4 +132,20 @@ tabItem(tabName = "info",
         )
 ),
 
+# ---------------------------
+# Overview tab
+# ---------------------------
+tabItem(tabName = "overview",
+        fluidRow(
+          box(width = 6, title = "Age distribution by Treatment", status = "primary",
+              solidHeader = TRUE, plotlyOutput("ageHist")),
+          box(width = 6, title = "Ejection Fraction vs BMI", status = "primary",
+              solidHeader = TRUE, plotlyOutput("efScatter"))
+        ),
+        fluidRow(
+          box(width = 4, title = "Summary Statistics", tableOutput("demoTable")),
+          box(width = 8, title = "Mortality by Treatment", plotlyOutput("treatmentOutcome"))
+        )
+),
+
                       
