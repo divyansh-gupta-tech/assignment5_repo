@@ -234,9 +234,10 @@ ui <- dashboardPage(
   )
 )
 
-# ---------------------------
+# --------------------------------------------------------
 # SERVER
-# ---------------------------
+# --------------------------------------------------------
+
 server <- function(input, output, session) {
   
   filtered <- reactive({
@@ -244,194 +245,191 @@ server <- function(input, output, session) {
       filter(
         TRTMT %in% input$trtmt,
         SEX %in% input$sex,
+        RACE %in% input$race,
         AGE >= input$age[1], AGE <= input$age[2],
         EJF_PER >= input$ef[1], EJF_PER <= input$ef[2],
-        BMI >= input$bmi[1], BMI <= input$bmi[2]
+        BMI >= input$bmi[1], BMI <= input$bmi[2],
+        CREAT >= input$creat[1], CREAT <= input$creat[2],
+        KLEVEL >= input$klevel[1], KLEVEL <= input$klevel[2],
+        HEARTRTE >= input$heartrate[1], HEARTRTE <= input$heartrate[2]
       )
   })
   
 # ---------------------------
 # Overview plots
 # ---------------------------
-  
-# Histogram:
-output$ageHist <- renderPlotly({
-  p <- ggplot(filtered(), aes(AGE, fill = TRTMT)) +
-    geom_histogram(
-      bins = 20,
-      position = "dodge",
-      alpha = 0.8,
-      color = "black") +
+
+  # No decimal ages
+  output$ageHist <- renderPlotly({
+    p <- ggplot(filtered(), aes(x = AGE, fill = TRTMT)) +
+      geom_histogram(
+        binwidth = 5,
+        position = "dodge",
+        alpha = 0.8,
+        color = "black"
+      ) +
+      scale_x_continuous(breaks = seq(age_min, age_max, 5)) +
       labs(x = "Age", y = "Count")
+    
+    ggplotly(p, tooltip = c("x", "y", "fill"))
+  })
+  
+  output$efScatter <- renderPlotly({
+    p <- ggplot(filtered(), aes(EJF_PER, BMI, color = TRTMT)) +
+      geom_point(alpha = 0.5, size = 1.8) +
+      labs(x = "Ejection Fraction (%)", y = "BMI")
     ggplotly(p)
   })
   
-output$treatmentOutcome <- renderPlotly({
-  df <- filtered() %>%
-    group_by(TRTMT, DEATH) %>%
-    summarise(n = n(), .groups = "drop")
-  
-  p <- ggplot(df, aes(TRTMT, n, fill = DEATH)) +
-    geom_col() +
-    labs(y = "Count")
-  
-  ggplotly(p)
-})
-
-# Scatter Plot:
-output$efScatter <- renderPlotly({
-  p <- ggplot(filtered(), aes(EJF_PER, BMI, color = TRTMT)) +
-    geom_point(alpha = 0.5, size = 1.8) +
-    scale_color_manual(values = c("Placebo" = "deepskyblue", "Treatment" = "red")) +
-    labs(x = "Ejection Fraction (%)", y = "BMI")
-  ggplotly(p)
-})
-
-output$demoTable <- renderTable({
-  df <- filtered()
-  tibble(
-    N            = nrow(df),
-    Mean_Age     = round(mean(df$AGE, na.rm = TRUE), 2),
-    Median_EF    = round(median(df$EJF_PER, na.rm = TRUE), 2),
-    Deaths       = sum(df$DEATH == "Death", na.rm = TRUE)
-  )
-})
-
-output$treatmentOutcome <- renderPlotly({
-  df <- filtered() %>%
-    group_by(TRTMT, DEATH) %>%
-    summarise(n = n(), .groups = "drop")
-  
-  p <- ggplot(df, aes(TRTMT, n, fill = DEATH)) +
-    geom_col() +
-    labs(y = "Count")
-  
-  ggplotly(p)
-})
-
-# ---------------------------
-# Outcomes visualizations
-# ---------------------------
-
-output$hospBar <- renderPlotly({
-  df <- filtered() %>%
-    group_by(TRTMT) %>%
-    summarise(mean_nhosp = mean(NHOSP, na.rm = TRUE))
-  
-  p <- ggplot(df, aes(TRTMT, mean_nhosp)) +
-    geom_col(fill = "deepskyblue2") +
-    labs(y = "Mean Hospitalizations")
-  
-  ggplotly(p)
-})
-
-output$nhospBox <- renderPlotly({
-  p <- ggplot(filtered(), aes(TRTMT, NHOSP)) +
-    geom_boxplot(fill = "steelblue") +
-    labs(y = "Hospitalizations")
-  
-  ggplotly(p)
-})
-
-# Plot 1
-output$creatEfPlot <- renderPlotly({
-  p <- ggplot(filtered(), aes(CREAT, EJF_PER, color = TRTMT)) +
-    geom_point(alpha = 0.5, size = 1.8) +
-    labs(x = "Creatinine", y = "Ejection Fraction (%)")
-  ggplotly(p)
-})
-
-# Plot 2 
-output$hospRatePlot <- renderPlotly({
-  df <- filtered() %>%
-    group_by(TRTMT) %>%
-    summarise(
-      Rate = round(mean(HOSP == 1, na.rm = TRUE) * 100, 1)
+  output$demoTable <- renderTable({
+    df <- filtered()
+    tibble(
+      N            = nrow(df),
+      Mean_Age     = round(mean(df$AGE, na.rm = TRUE), 2),
+      Median_EF    = round(median(df$EJF_PER, na.rm = TRUE), 2),
+      Deaths       = sum(df$DEATH == "Death", na.rm = TRUE)
     )
+  })
   
-  p <- ggplot(df, aes(TRTMT, Rate)) +
-    geom_col(fill = "purple") +
-    labs(y = "Hospitalization Rate (%)")
-  
-  ggplotly(p)
-})
-
-# ---------------------------
-# Monthly Mortality
-# ---------------------------
-
-monthly_data <- reactive({
-  filtered() %>%
-    mutate(
-      Month = floor(DEATHDAY / 30),
-      Died = ifelse(DEATH == "Death", 1, 0)
+# Adding: 
+    output$coreParamsTable <- renderTable({
+      df <- filtered()
+      tibble(
+        Mean_Age   = round(mean(df$AGE, na.rm = TRUE), 1),
+        Mean_BMI   = round(mean(df$BMI, na.rm = TRUE), 1),
+        Mean_EF    = round(mean(df$EJF_PER, na.rm = TRUE), 1),
+        Mean_Creat = round(mean(df$CREAT, na.rm = TRUE), 2),
+        Mean_K     = round(mean(df$KLEVEL, na.rm = TRUE), 2),
+        Mean_HR    = round(mean(df$HEARTRTE, na.rm = TRUE), 1),
+        Mortality  = sum(df$DEATH == "Death")
+      )
+    })
+    
+    output$treatmentOutcome <- renderPlotly({
+      df <- filtered() %>%
+        group_by(TRTMT, DEATH) %>%
+        summarise(n = n(), .groups = "drop")
+      
+      p <- ggplot(df, aes(TRTMT, n, fill = DEATH)) +
+        geom_col() +
+        labs(y = "Count")
+      
+      ggplotly(p)
+    })
+    
+    # ---------------------------
+    # Outcomes visualizations
+    # ---------------------------
+    
+    output$hospBar <- renderPlotly({
+      df <- filtered() %>%
+        group_by(TRTMT) %>%
+        summarise(mean_nhosp = mean(NHOSP, na.rm = TRUE))
+      
+      p <- ggplot(df, aes(TRTMT, mean_nhosp)) +
+        geom_col(fill = "steelblue") +
+        labs(y = "Mean Hospitalizations")
+      
+      ggplotly(p)
+    })
+    
+    output$nhospBox <- renderPlotly({
+      p <- ggplot(filtered(), aes(TRTMT, NHOSP)) +
+        geom_boxplot(fill = "steelblue") +
+        labs(y = "Hospitalizations")
+      
+      ggplotly(p)
+    })
+    
+    output$creatEfPlot <- renderPlotly({
+      p <- ggplot(filtered(), aes(CREAT, EJF_PER, color = TRTMT)) +
+        geom_point(alpha = 0.5, size = 1.8)
+      ggplotly(p)
+    })
+    
+    output$hospRatePlot <- renderPlotly({
+      df <- filtered() %>%
+        group_by(TRTMT) %>%
+        summarise(Rate = round(mean(HOSP == 1, na.rm = TRUE) * 100, 1))
+      
+      p <- ggplot(df, aes(TRTMT, Rate)) +
+        geom_col(fill = "purple") +
+        labs(y = "Hospitalization Rate (%)")
+      
+      ggplotly(p)
+    })
+    
+    # ---------------------------
+    # Monthly Mortality
+    # ---------------------------
+    
+    monthly_data <- reactive({
+      filtered() %>%
+        mutate(
+          Month = floor(DEATHDAY / 30),
+          Died = ifelse(DEATH == "Death", 1, 0)
+        )
+    })
+    
+    output$monthlyMortalityTable <- renderDT({
+      df <- monthly_data() %>%
+        group_by(Month) %>%
+        summarise(
+          Deaths = sum(Died, na.rm = TRUE),
+          Total = n(),
+          Mortality_Risk = round(Deaths / Total, 3)
+        )
+      datatable(df)
+    })
+    
+    output$monthlyMortalityPlot <- renderPlotly({
+      df <- monthly_data() %>%
+        group_by(Month) %>%
+        summarise(Deaths = sum(Died, na.rm = TRUE))
+      
+      p <- ggplot(df, aes(Month, Deaths)) +
+        geom_col(fill = "brown") +
+        labs(x = "Month", y = "Deaths")
+      
+      ggplotly(p)
+    })
+    
+    output$monthlyMortalityByTrtTable <- renderDT({
+      df <- monthly_data() %>%
+        group_by(Month, TRTMT) %>%
+        summarise(
+          Deaths = sum(Died, na.rm = TRUE),
+          Total = n(),
+          Mortality_Risk = round(Deaths / Total, 3),
+          .groups = "drop"
+        )
+      datatable(df)
+    })
+    
+    output$monthlyMortalityByTrtPlot <- renderPlotly({
+      df <- monthly_data() %>%
+        group_by(Month, TRTMT) %>%
+        summarise(Deaths = sum(Died, na.rm = TRUE), .groups = "drop")
+      
+      p <- ggplot(df, aes(Month, Deaths, fill = TRTMT)) +
+        geom_col(position = "dodge") +
+        labs(x = "Month", y = "Deaths")
+      
+      ggplotly(p)
+    })
+    
+    # ---------------------------
+    # Data Table
+    # ---------------------------
+    
+    output$dataTable <- renderDT({
+      datatable(filtered(), filter = "top")
+    })
+    
+    output$downloadData <- downloadHandler(
+      filename = function() paste0("DIG_filtered_", Sys.Date(), ".csv"),
+      content = function(file) write_csv(filtered(), file)
     )
-})
-
-output$monthlyMortalityTable <- renderDT({
-  df <- monthly_data() %>%
-    group_by(Month) %>%
-    summarise(
-      Deaths = sum(Died, na.rm = TRUE),
-      Total = n(),
-      Mortality_Risk = round(Deaths / Total, 3)
-    )
-  datatable(df)
-})
-
-output$monthlyMortalityPlot <- renderPlotly({
-  df <- monthly_data() %>%
-    group_by(Month) %>%
-    summarise(Deaths = sum(Died, na.rm = TRUE))
+  }
   
-  p <- ggplot(df, aes(Month, Deaths)) +
-    geom_col(fill = "brown4") +
-    labs(x = "Month", y = "Deaths")
-  
-  ggplotly(p)
-})
-
-output$monthlyMortalityByTrtTable <- renderDT({
-  df <- monthly_data() %>%
-    group_by(Month, TRTMT) %>%
-    summarise(
-      Deaths = sum(Died, na.rm = TRUE),
-      Total = n(),
-      Mortality_Risk = round(Deaths / Total, 3),
-      .groups = "drop"
-    )
-  datatable(df)
-})
-
-output$monthlyMortalityByTrtPlot <- renderPlotly({
-  df <- monthly_data() %>%
-    group_by(Month, TRTMT) %>%
-    summarise(Deaths = sum(Died, na.rm = TRUE), .groups = "drop")
-  
-  p <- ggplot(df, aes(Month, Deaths, fill = TRTMT)) +
-    geom_col(position = "dodge") +
-    labs(x = "Month", y = "Deaths")
-  
-  ggplotly(p)
-})
-
-# ---------------------------
-# Data Table
-# ---------------------------
-
-output$dataTable <- renderDT({
-  datatable(filtered(), filter = "top")
-})
-
-output$downloadData <- downloadHandler(
-  filename = function() paste0("DIG_filtered_", Sys.Date(), ".csv"),
-  content = function(file) write_csv(filtered(), file)
-)
-}
-
-shinyApp(ui,server)  
-  
-  
-
-
-                      
+  shinyApp(ui, server)  
