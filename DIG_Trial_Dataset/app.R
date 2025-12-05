@@ -33,9 +33,10 @@ ef_max   <- max(dig$EJF_PER, na.rm = TRUE)
 bmi_min  <- min(dig$BMI, na.rm = TRUE)
 bmi_max  <- max(dig$BMI, na.rm = TRUE)
 
-# ---------------------------
+
+# --------------------------------------------------------
 # UI
-# ---------------------------
+# --------------------------------------------------------
 
 ui <- dashboardPage(
   
@@ -51,6 +52,10 @@ ui <- dashboardPage(
       menuItem("Data", tabName = "data", icon = icon("table")),
       hr(),
       
+      # -------------------
+      # Core Filters
+      # -------------------
+      
       pickerInput("trtmt", "Treatment",
                   choices = levels(dig$TRTMT),
                   selected = levels(dig$TRTMT),
@@ -60,6 +65,12 @@ ui <- dashboardPage(
       pickerInput("sex", "Sex",
                   choices = levels(dig$SEX),
                   selected = levels(dig$SEX),
+                  multiple = TRUE
+      ),
+      
+      pickerInput("race", "Race",
+                  choices = levels(dig$RACE),
+                  selected = levels(dig$RACE),
                   multiple = TRUE
       ),
       
@@ -78,6 +89,24 @@ ui <- dashboardPage(
                   value = c(bmi_min, bmi_max)
       ),
       
+      sliderInput("creat", "Creatinine",
+                  min = min(dig$CREAT, na.rm = TRUE),
+                  max = max(dig$CREAT, na.rm = TRUE),
+                  value = c(min(dig$CREAT, na.rm = TRUE), max(dig$CREAT, na.rm = TRUE))
+      ),
+      
+      sliderInput("klevel", "Potassium Level",
+                  min = min(dig$KLEVEL, na.rm = TRUE),
+                  max = max(dig$KLEVEL, na.rm = TRUE),
+                  value = c(min(dig$KLEVEL, na.rm = TRUE), max(dig$KLEVEL, na.rm = TRUE))
+      ),
+      
+      sliderInput("heartrate", "Heart Rate",
+                  min = min(dig$HEARTRTE, na.rm = TRUE),
+                  max = max(dig$HEARTRTE, na.rm = TRUE),
+                  value = c(min(dig$HEARTRTE, na.rm = TRUE), max(dig$HEARTRTE, na.rm = TRUE))
+      ),
+      
       downloadButton("downloadData", "Download filtered CSV")
     )
   ),
@@ -88,124 +117,122 @@ ui <- dashboardPage(
       .content {padding: 20px;}
     "))),
     
-  tabItems(
+    tabItems(
       
-# ---------------------------
-# Info tab
-# ---------------------------
-tabItem(tabName = "info",
-        fluidRow(
-          box(width = 12, title = "About the DIG Trial", status = "primary", solidHeader = TRUE,
-          p("The Digitalis Investigation Group (DIG) Trial studied how Digoxin affects mortality and hospitalizations among patients with heart failure."),
-          p("This dashboard lets you explore the DIG dataset interactively, compare treatment groups, examine clinical features, and summarise mortality risk over time."))
+      # ---------------------------
+      # Info tab
+      # ---------------------------
+      tabItem(tabName = "info",
+              fluidRow(
+                box(width = 12, title = "About the DIG Trial", status = "primary", solidHeader = TRUE,
+                    p("The Digitalis Investigation Group (DIG) Trial studied how Digoxin affects 
+              mortality and hospitalizations among patients with heart failure.")
+                )
               ),
               
-        fluidRow(
-          box(width = 6, title = "Dataset Overview", status = "info",
-          p("The dataset contains demographic, clinical, and outcome variables for more than 6800 patients."),
-          p("Key variables include:"),
-          tags$ul(
-          tags$li("AGE — Patient age"),
-          tags$li("TRTMT — Treatment group (Placebo, Digoxin)"),
-          tags$li("EJF_PER — Ejection Fraction (%)"),
-          tags$li("BMI — Body Mass Index"),
-          tags$li("KLEVEL — Potassium level"),
-          tags$li("CREAT — Creatinine"),
-          tags$li("NHOSP — Number of hospitalizations"),
-          tags$li("DEATH — Mortality status"),
-          tags$li("DEATHDAY — Follow-up time (days)")
-          ),
-          tags$a(href = "https://github.com/divyansh-gupta-tech/assignment5_repo/blob/main/DIG_code_book-1.pdf", target = "_blank",
-                 "Click here to open the DIG codebook")
-          ),
-          
-          box(width = 6, title = "How to Use the Dashboard", status = "info",
-          p("Use the sidebar filters to narrow down the dataset by treatment group, sex, age, 
-               ejection fraction, and BMI."),
-          tags$ul(
-          tags$li("Overview of demographics and treatment patterns"),
-          tags$li("Hospitalization outcomes"),
-          tags$li("Monthly mortality risk summaries"),
-          tags$li("Interactive full dataset viewer")
+              fluidRow(
+                box(width = 6, title = "Dataset Overview", status = "info",
+                    p("The dataset contains demographic, clinical, and outcome variables for >6800 patients.")
+                ),
+                
+                box(width = 6, title = "How to Use the Dashboard", status = "info",
+                    tags$ul(
+                      tags$li("Adjust sidebar filters"),
+                      tags$li("Explore treatment differences"),
+                      tags$li("Analyze outcomes and mortality patterns")
+                    )
+                )
+              ),
+              
+              # ----------------------
+              # Recommended Parameters
+              # ----------------------
+              fluidRow(
+                box(width = 12, title = "Recommended Core Parameters", status = "warning", solidHeader = TRUE,
+                    tags$ul(
+                      tags$li(tags$b("Demographics:"), " AGE, SEX, RACE, BMI"),
+                      tags$li(tags$b("Treatment:"), " TRTMT, DIGDOSE, DIGUSE, ACEINHIB, DIURETICS"),
+                      tags$li(tags$b("Clinical status:"), " EJF_PER, FUNCTCLS, NSYM, CREAT, KLEVEL, HEARTRTE, SYSBP"),
+                      tags$li(tags$b("Outcomes:"), " DEATH, DEATHDAY, DWHF, HOSP, NHOSP")
+                    )
+                )
               )
-          )
-        )
-),
-
-# ---------------------------
-# Overview tab
-# ---------------------------
-tabItem(tabName = "overview",
-        fluidRow(
-          box(width = 6, title = "Age distribution by Treatment", status = "primary",
-              solidHeader = TRUE, plotlyOutput("ageHist")),
-          box(width = 6, title = "Ejection Fraction vs BMI", status = "primary",
-              solidHeader = TRUE, plotlyOutput("efScatter"))
-        ),
-        fluidRow(
-          box(width = 4, title = "Summary Statistics", tableOutput("demoTable")),
-          box(width = 8, title = "Mortality by Treatment", plotlyOutput("treatmentOutcome"))
-        )
-),
-
-# ---------------------------
-# Outcomes tab
-# ---------------------------
-tabItem(tabName = "outcomes",
-        fluidRow(
-          box(width = 6, title = "Mean Hospitalizations", status = "primary",
-              solidHeader = TRUE, plotlyOutput("hospBar")),
-          box(width = 6, title = "NHOSP Distribution", status = "primary",
-              solidHeader = TRUE, plotlyOutput("nhospBox"))
-        ),
-        hr(),
-        fluidRow(
-          box(width = 6, title = "Creatinine vs Ejection Fraction", status = "info",
-              solidHeader = TRUE, plotlyOutput("creatEfPlot")),
-          box(width = 6, title = "Hospitalization Rate (%)", status = "info",
-              solidHeader = TRUE, plotlyOutput("hospRatePlot"))
-        )
-),
-
-# ---------------------------
-# Mortality tab
-# ---------------------------
-tabItem(tabName = "mortality",
-        
-        fluidRow(
-          box(width = 12, title = "Monthly Mortality Summary", status = "primary",
-              solidHeader = TRUE, DTOutput("monthlyMortalityTable"))
-        ),
-        
-        fluidRow(
-          box(width = 12, title = "Deaths per Month", status = "primary",
-              solidHeader = TRUE, plotlyOutput("monthlyMortalityPlot"))
-        ),
-        hr(),
-        
-        fluidRow(
-          box(width = 12, title = "Monthly Deaths by Treatment Group", status = "primary",
-              solidHeader = TRUE, plotlyOutput("monthlyMortalityByTrtPlot"))
-        ),
-        
-        fluidRow(
-          box(width = 12, title = "Monthly Mortality by Treatment Table", status = "primary",
-              solidHeader = TRUE, DTOutput("monthlyMortalityByTrtTable"))
-        )
-),
-
-# ---------------------------
-# Data tab
-# ---------------------------
-tabItem(tabName = "data",
-        box(width = 12, title = "Filtered Dataset", status = "primary",
-            DTOutput("dataTable"))
-)
+      ),
+      
+      # ---------------------------
+      # Overview tab
+      # ---------------------------
+      tabItem(tabName = "overview",
+              fluidRow(
+                box(width = 6, title = "Age distribution by Treatment", status = "primary",
+                    solidHeader = TRUE, plotlyOutput("ageHist")),
+                box(width = 6, title = "Ejection Fraction vs BMI", status = "primary",
+                    solidHeader = TRUE, plotlyOutput("efScatter"))
+              ),
+              
+              fluidRow(
+                box(width = 4, title = "Summary Statistics", tableOutput("demoTable")),
+                box(width = 4, title = "Core Parameters Summary", tableOutput("coreParamsTable")),
+                box(width = 4, title = "Mortality by Treatment", plotlyOutput("treatmentOutcome"))
+              )
+      ),
+      
+      # ---------------------------
+      # Outcomes tab
+      # ---------------------------
+      tabItem(tabName = "outcomes",
+              fluidRow(
+                box(width = 6, title = "Mean Hospitalizations", status = "primary",
+                    solidHeader = TRUE, plotlyOutput("hospBar")),
+                box(width = 6, title = "NHOSP Distribution", status = "primary",
+                    solidHeader = TRUE, plotlyOutput("nhospBox"))
+              ),
+              hr(),
+              fluidRow(
+                box(width = 6, title = "Creatinine vs Ejection Fraction", status = "info",
+                    solidHeader = TRUE, plotlyOutput("creatEfPlot")),
+                box(width = 6, title = "Hospitalization Rate (%)", status = "info",
+                    solidHeader = TRUE, plotlyOutput("hospRatePlot"))
+              )
+      ),
+      
+      # ---------------------------
+      # Mortality tab
+      # ---------------------------
+      tabItem(tabName = "mortality",
+              
+              fluidRow(
+                box(width = 12, title = "Monthly Mortality Summary", status = "primary",
+                    solidHeader = TRUE, DTOutput("monthlyMortalityTable"))
+              ),
+              
+              fluidRow(
+                box(width = 12, title = "Deaths per Month", status = "primary",
+                    solidHeader = TRUE, plotlyOutput("monthlyMortalityPlot"))
+              ),
+              hr(),
+              
+              fluidRow(
+                box(width = 12, title = "Monthly Deaths by Treatment Group", status = "primary",
+                    solidHeader = TRUE, plotlyOutput("monthlyMortalityByTrtPlot"))
+              ),
+              
+              fluidRow(
+                box(width = 12, title = "Monthly Mortality by Treatment Table", status = "primary",
+                    solidHeader = TRUE, DTOutput("monthlyMortalityByTrtTable"))
+              )
+      ),
+      
+      # ---------------------------
+      # Data tab
+      # ---------------------------
+      tabItem(tabName = "data",
+              box(width = 12, title = "Filtered Dataset", status = "primary",
+                  DTOutput("dataTable"))
+      )
+    )
   )
-  )
 )
-
-
 
 # ---------------------------
 # SERVER
