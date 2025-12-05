@@ -195,6 +195,19 @@ tabItem(tabName = "mortality",
 ),
 
 # ---------------------------
+# Data tab
+# ---------------------------
+tabItem(tabName = "data",
+        box(width = 12, title = "Filtered Dataset", status = "primary",
+            DTOutput("dataTable"))
+)
+  )
+  )
+)
+
+
+
+# ---------------------------
 # SERVER
 # ---------------------------
 server <- function(input, output, session) {
@@ -389,7 +402,7 @@ output$downloadData <- downloadHandler(
 )
 }
 
-shinyApp(ui, server)  
+shinyApp(ui,server)  
   
   
 
