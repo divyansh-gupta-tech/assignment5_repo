@@ -214,6 +214,32 @@ server <- function(input, output, session) {
         HEARTRTE >= input$heartrate[1], HEARTRTE <= input$heartrate[2]
       )
   })
+
+# ---------------------------
+# Overview plots
+# ---------------------------
+  
+# FIXED: No decimal ages
+output$ageHist <- renderPlotly({
+  p <- ggplot(filtered(), aes(x = AGE, fill = TRTMT)) +
+    geom_histogram(
+      binwidth = 5,
+      position = "dodge",
+      alpha = 0.8,
+      color = "black") +
+    scale_x_continuous(breaks = seq(age_min, age_max, 5)) +
+    labs(x = "Age", y = "Count")
+    
+ggplotly(p, tooltip = c("x", "y", "fill"))
+  })
+  
+output$efScatter <- renderPlotly({
+  p <- ggplot(filtered(), aes(EJF_PER, BMI, color = TRTMT)) +
+    geom_point(alpha = 0.5, size = 1.8) +
+    labs(x = "Ejection Fraction (%)", y = "BMI")
+ggplotly(p)
+  })
+  
   
 
 
