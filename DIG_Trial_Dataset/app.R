@@ -167,5 +167,32 @@ tabItem(tabName = "outcomes",
         )
 ),
 
+# ---------------------------
+# Mortality tab
+# ---------------------------
+tabItem(tabName = "mortality",
+        
+        fluidRow(
+          box(width = 12, title = "Monthly Mortality Summary", status = "primary",
+              solidHeader = TRUE, DTOutput("monthlyMortalityTable"))
+        ),
+        
+        fluidRow(
+          box(width = 12, title = "Deaths per Month", status = "primary",
+              solidHeader = TRUE, plotlyOutput("monthlyMortalityPlot"))
+        ),
+        hr(),
+        
+        fluidRow(
+          box(width = 12, title = "Monthly Deaths by Treatment Group", status = "primary",
+              solidHeader = TRUE, plotlyOutput("monthlyMortalityByTrtPlot"))
+        ),
+        
+        fluidRow(
+          box(width = 12, title = "Monthly Mortality by Treatment Table", status = "primary",
+              solidHeader = TRUE, DTOutput("monthlyMortalityByTrtTable"))
+        )
+),
+
 
                       
