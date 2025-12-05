@@ -301,7 +301,7 @@ output$creatEfPlot <- renderPlotly({
   ggplotly(p)
 })
 
-# Extra Outcomes Plot 2 – hospitalization rate
+# Plot 2 
 output$hospRatePlot <- renderPlotly({
   df <- filtered() %>%
     group_by(TRTMT) %>%
@@ -316,6 +316,64 @@ output$hospRatePlot <- renderPlotly({
   ggplotly(p)
 })
 
+# ---------------------------
+# Monthly Mortality
+# ---------------------------
+
+monthly_data <- reactive({
+  filtered() %>%
+    mutate(
+      Month = floor(DEATHDAY / 30),
+      Died = ifelse(DEATH == "Death", 1, 0)
+    )
+})
+
+output$monthlyMortalityTable <- renderDT({
+  df <- monthly_data() %>%
+    group_by(Month) %>%
+    summarise(
+      Deaths = sum(Died, na.rm = TRUE),
+      Total = n(),
+      Mortality_Risk = round(Deaths / Total, 3)
+    )
+  datatable(df)
+})
+
+output$monthlyMortalityPlot <- renderPlotly({
+  df <- monthly_data() %>%
+    group_by(Month) %>%
+    summarise(Deaths = sum(Died, na.rm = TRUE))
+  
+  p <- ggplot(df, aes(Month, Deaths)) +
+    geom_col(fill = "brown4") +
+    labs(x = "Month", y = "Deaths")
+  
+  ggplotly(p)
+})
+
+output$monthlyMortalityByTrtTable <- renderDT({
+  df <- monthly_data() %>%
+    group_by(Month, TRTMT) %>%
+    summarise(
+      Deaths = sum(Died, na.rm = TRUE),
+      Total = n(),
+      Mortality_Risk = round(Deaths / Total, 3),
+      .groups = "drop"
+    )
+  datatable(df)
+})
+
+output$monthlyMortalityByTrtPlot <- renderPlotly({
+  df <- monthly_data() %>%
+    group_by(Month, TRTMT) %>%
+    summarise(Deaths = sum(Died, na.rm = TRUE), .groups = "drop")
+  
+  p <- ggplot(df, aes(Month, Deaths, fill = TRTMT)) +
+    geom_col(position = "dodge") +
+    labs(x = "Month", y = "Deaths")
+  
+  ggplotly(p)
+})
 
   
   
