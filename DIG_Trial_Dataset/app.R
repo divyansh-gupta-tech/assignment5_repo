@@ -194,5 +194,27 @@ tabItem(tabName = "mortality",
         )
 ),
 
+# --------------------------------------------------------
+# SERVER
+# --------------------------------------------------------
+
+server <- function(input, output, session) {
+  
+  filtered <- reactive({
+    dig %>%
+      filter(
+        TRTMT %in% input$trtmt,
+        SEX %in% input$sex,
+        RACE %in% input$race,
+        AGE >= input$age[1], AGE <= input$age[2],
+        EJF_PER >= input$ef[1], EJF_PER <= input$ef[2],
+        BMI >= input$bmi[1], BMI <= input$bmi[2],
+        CREAT >= input$creat[1], CREAT <= input$creat[2],
+        KLEVEL >= input$klevel[1], KLEVEL <= input$klevel[2],
+        HEARTRTE >= input$heartrate[1], HEARTRTE <= input$heartrate[2]
+      )
+  })
+  
+
 
                       
