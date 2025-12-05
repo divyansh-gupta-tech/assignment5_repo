@@ -194,10 +194,9 @@ tabItem(tabName = "mortality",
         )
 ),
 
-# --------------------------------------------------------
+# ---------------------------
 # SERVER
-# --------------------------------------------------------
-
+# ---------------------------
 server <- function(input, output, session) {
   
   filtered <- reactive({
@@ -205,40 +204,72 @@ server <- function(input, output, session) {
       filter(
         TRTMT %in% input$trtmt,
         SEX %in% input$sex,
-        RACE %in% input$race,
         AGE >= input$age[1], AGE <= input$age[2],
         EJF_PER >= input$ef[1], EJF_PER <= input$ef[2],
-        BMI >= input$bmi[1], BMI <= input$bmi[2],
-        CREAT >= input$creat[1], CREAT <= input$creat[2],
-        KLEVEL >= input$klevel[1], KLEVEL <= input$klevel[2],
-        HEARTRTE >= input$heartrate[1], HEARTRTE <= input$heartrate[2]
+        BMI >= input$bmi[1], BMI <= input$bmi[2]
       )
   })
-
+  
 # ---------------------------
 # Overview plots
 # ---------------------------
   
-# FIXED: No decimal ages
+# Histogram:
 output$ageHist <- renderPlotly({
-  p <- ggplot(filtered(), aes(x = AGE, fill = TRTMT)) +
+  p <- ggplot(filtered(), aes(AGE, fill = TRTMT)) +
     geom_histogram(
-      binwidth = 5,
+      bins = 20,
       position = "dodge",
       alpha = 0.8,
       color = "black") +
-    scale_x_continuous(breaks = seq(age_min, age_max, 5)) +
-    labs(x = "Age", y = "Count")
-    
-ggplotly(p, tooltip = c("x", "y", "fill"))
+      labs(x = "Age", y = "Count")
+    ggplotly(p)
   })
   
+output$treatmentOutcome <- renderPlotly({
+  df <- filtered() %>%
+    group_by(TRTMT, DEATH) %>%
+    summarise(n = n(), .groups = "drop")
+  
+  p <- ggplot(df, aes(TRTMT, n, fill = DEATH)) +
+    geom_col() +
+    labs(y = "Count")
+  
+  ggplotly(p)
+})
+
+# Scatter Plot:
 output$efScatter <- renderPlotly({
   p <- ggplot(filtered(), aes(EJF_PER, BMI, color = TRTMT)) +
     geom_point(alpha = 0.5, size = 1.8) +
+    scale_color_manual(values = c("Placebo" = "#1F77B4", "Treatment" = "#D62728")) +
     labs(x = "Ejection Fraction (%)", y = "BMI")
-ggplotly(p)
-  })
+  ggplotly(p)
+})
+
+output$demoTable <- renderTable({
+  df <- filtered()
+  tibble(
+    N            = nrow(df),
+    Mean_Age     = round(mean(df$AGE, na.rm = TRUE), 2),
+    Median_EF    = round(median(df$EJF_PER, na.rm = TRUE), 2),
+    Deaths       = sum(df$DEATH == "Death", na.rm = TRUE)
+  )
+})
+
+output$treatmentOutcome <- renderPlotly({
+  df <- filtered() %>%
+    group_by(TRTMT, DEATH) %>%
+    summarise(n = n(), .groups = "drop")
+  
+  p <- ggplot(df, aes(TRTMT, n, fill = DEATH)) +
+    geom_col() +
+    labs(y = "Count")
+  
+  ggplotly(p)
+})
+
+  
   
   
 
