@@ -375,7 +375,21 @@ output$monthlyMortalityByTrtPlot <- renderPlotly({
   ggplotly(p)
 })
 
-  
+# ---------------------------
+# Data Table
+# ---------------------------
+
+output$dataTable <- renderDT({
+  datatable(filtered(), filter = "top")
+})
+
+output$downloadData <- downloadHandler(
+  filename = function() paste0("DIG_filtered_", Sys.Date(), ".csv"),
+  content = function(file) write_csv(filtered(), file)
+)
+}
+
+shinyApp(ui, server)  
   
   
 
