@@ -1,0 +1,3 @@
+install.packages("shiny")
+library(shiny)
+runGitHub("assignment5_repo", "Divyansh Gupta", subdir = "DIG_Trial_Dataset")
